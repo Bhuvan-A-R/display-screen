@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Display — Hackathon Broadcast</title>
+<style>
+  :root{
+    --bg:#0b0d10;
+    --panel:#14171b;
+    --line:#242a30;
+    --text:#e8ecef;
+    --dim:#7c8891;
+    --accent:#7c5cff;
+    --accent2:#33e0a1;
+    --warn:#ffb454;
+    --urgent:#ff5c68;
+    --mono: 'JetBrains Mono','SF Mono',Consolas,monospace;
+    --sans: 'Inter',system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 20% 15%, rgba(124,92,255,.10), transparent 45%),
+      radial-gradient(circle at 85% 80%, rgba(51,224,161,.08), transparent 45%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .clock{
+    position:fixed;top:28px;right:36px;
+    font-family:var(--mono);
+    font-size:16px;
+    color:var(--dim);
+    letter-spacing:.05em;
+  }
+  .brand{
+    position:fixed;top:28px;left:36px;
+    font-family:var(--mono);
+    font-size:13px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--dim);
+    display:flex;align-items:center;gap:8px;
+  }
+  .brand .dot{width:7px;height:7px;border-radius:50%;background:var(--accent2);box-shadow:0 0 8px var(--accent2);}
+  .brand .dot.alerting{animation: blinkDot .3s infinite;}
+  @keyframes blinkDot{ 0%,100%{opacity:1;} 50%{opacity:.2;} }
+
+  #soundGate{
+    position:fixed;
+    inset:0;
+    background:rgba(6,7,9,.92);
+    z-index:50;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:18px;
+    text-align:center;
+    cursor:pointer;
+  }
+  #soundGate .icon{font-size:56px;}
+  #soundGate .headline2{font-size:26px;font-weight:700;}
+  #soundGate .sub2{color:var(--dim);font-family:var(--mono);font-size:14px;}
+  #soundGate button{
+    margin-top:6px;
+    padding:14px 28px;
+    border-radius:10px;
+    border:none;
+    background:var(--accent);
+    color:#fff;
+    font-size:16px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  #soundGate button:hover{background:#8f72ff;}
+  #soundGate.hidden{display:none;}
+
+  .sound-status{
+    position:fixed;
+    bottom:24px;
+    left:36px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--dim);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .sound-status .sdot{width:6px;height:6px;border-radius:50%;background:var(--urgent);}
+  .sound-status.on .sdot{background:var(--accent2);}
+
+  .idle{
+    text-align:center;
+    color:var(--dim);
+    font-family:var(--mono);
+    font-size:18px;
+    letter-spacing:.04em;
+  }
+  .idle .big{
+    font-family:var(--sans);
+    font-size:44px;
+    color:var(--text);
+    font-weight:700;
+    margin-bottom:10px;
+    letter-spacing:-0.01em;
+  }
+
+  #stage{
+    width:100%;
+    max-width:1100px;
+    padding:40px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:24px;
+  }
+
+  .card{
+    width:100%;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:6px solid var(--accent);
+    border-radius:18px;
+    padding:48px 56px;
+    box-shadow:0 30px 80px rgba(0,0,0,.5);
+    animation: slideIn .5s cubic-bezier(.16,1,.3,1);
+  }
+  .card.success{border-left-color:var(--accent2);}
+  .card.warning{border-left-color:var(--warn);}
+  .card.urgent{
+    border-left-color:var(--urgent);
+    animation: slideIn .5s cubic-bezier(.16,1,.3,1), pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes slideIn{
+    from{opacity:0; transform:translateY(28px) scale(.98);}
+    to{opacity:1; transform:translateY(0) scale(1);}
+  }
+  @keyframes pulse{
+    0%,100%{box-shadow:0 30px 80px rgba(0,0,0,.5), 0 0 0 0 rgba(255,92,104,.35);}
+    50%{box-shadow:0 30px 80px rgba(0,0,0,.5), 0 0 0 14px rgba(255,92,104,0);}
+  }
+  .tag{
+    font-family:var(--mono);
+    font-size:13px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    margin-bottom:16px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+  }
+  .card.info .tag{color:var(--accent);}
+  .card.success .tag{color:var(--accent2);}
+  .card.warning .tag{color:var(--warn);}
+  .card.urgent .tag{color:var(--urgent);}
+
+  .headline{
+    font-size:52px;
+    font-weight:800;
+    line-height:1.15;
+    letter-spacing:-0.01em;
+    margin:0 0 14px;
+    min-height:1.15em;
+  }
+  .cursor{
+    display:inline-block;
+    width:4px;
+    height:0.85em;
+    background:currentColor;
+    margin-left:4px;
+    vertical-align:-0.05em;
+    animation: blinkCursor .8s step-end infinite;
+  }
+  .cursor.hidden{display:none;}
+  @keyframes blinkCursor{ 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+  .message{
+    font-size:22px;
+    color:var(--dim);
+    line-height:1.5;
+    margin:0;
+    opacity:0;
+    transition:opacity .4s ease;
+  }
+  .message.show{opacity:1;}
+  .time{
+    margin-top:22px;
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--dim);
+    opacity:.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="brand"><span class="dot" id="brandDot"></span><span id="brandText">hackathon broadcast</span></div>
+<div class="clock" id="clock">--:--:--</div>
+<div class="sound-status" id="soundStatus"><span class="sdot"></span><span id="soundStatusText">sound: click to enable</span></div>
+
+<div id="soundGate">
+  <div class="icon">🔈</div>
+  <div class="headline2">Click anywhere to enable sound</div>
+  <div class="sub2">Browsers block audio until this screen is clicked once</div>
+  <button id="enableSoundBtn">Enable sound</button>
+</div>
+
+<div id="stage">
+  <div class="idle" id="idle">
+    <div class="big">Waiting for announcements</div>
+    Nothing broadcast yet — this screen updates automatically.
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  const stage = document.getElementById('stage');
+  const idle = document.getElementById('idle');
+  const brandDot = document.getElementById('brandDot');
+
+  // ---------- Live clock ----------
+  function tick(){
+    document.getElementById('clock').textContent = new Date().toLocaleTimeString();
+  }
+  tick(); setInterval(tick, 1000);
+
+  // ---------- WebAudio helpers ----------
+  let audioCtx;
+  let audioUnlocked = false;
+  const soundGate = document.getElementById('soundGate');
+  const soundStatus = document.getElementById('soundStatus');
+  const soundStatusText = document.getElementById('soundStatusText');
+
+  function markAudioUnlocked(){
+    audioUnlocked = true;
+    soundGate.classList.add('hidden');
+    soundStatus.classList.add('on');
+    soundStatusText.textContent = 'sound: on';
+  }
+
+  function ensureAudio(){
+    if (!audioCtx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC){
+        soundStatusText.textContent = 'sound: unsupported in this browser';
+        return null;
+      }
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === 'suspended'){
+      audioCtx.resume().then(() => {
+        if (audioCtx.state === 'running') markAudioUnlocked();
+      }).catch(() => {
+        soundStatusText.textContent = 'sound: blocked — click the screen';
+      });
+    } else if (audioCtx.state === 'running'){
+      markAudioUnlocked();
+    }
+    return audioCtx;
+  }
+
+  // Unlock on the very first user interaction of ANY kind
+  ['click', 'touchstart', 'keydown'].forEach(evt => {
+    document.addEventListener(evt, () => ensureAudio(), { once: true });
+  });
+  document.getElementById('enableSoundBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    ensureAudio();
+  });
+  soundGate.addEventListener('click', () => ensureAudio());
+
+  function playTone(freq, start, duration, waveform, volume){
+    if (!audioCtx || audioCtx.state !== 'running') return; // audio not unlocked yet — skip silently
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = waveform;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(volume, start + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(start);
+    osc.stop(start + duration + 0.02);
+  }
+
+  // Alert patterns per priority — one repeat unit, looped to fill the alert window
+  const patterns = {
+    info:    { wave:'sine',     notes:[[660,0,0.18],[880,0.15,0.22]],                                 gap:0.15 },
+    success: { wave:'triangle', notes:[[523,0,0.14],[659,0.12,0.14],[784,0.24,0.14],[1047,0.38,0.30]], gap:0.15 },
+    warning: { wave:'square',   notes:[[700,0,0.13],[500,0.16,0.13],[700,0.32,0.13],[500,0.48,0.13]],  gap:0.15 },
+    urgent:  { wave:'sawtooth', notes:[[880,0,0.11],[660,0.11,0.11],[880,0.22,0.11],[660,0.33,0.11],[880,0.44,0.11],[660,0.55,0.11]], gap:0.1 }
+  };
+
+  // Plays the priority's alert sound on loop for `totalSeconds`
+  function playAlertForDuration(type, totalSeconds){
+    ensureAudio();
+    const pattern = patterns[type] || patterns.info;
+    const lastNote = pattern.notes[pattern.notes.length - 1];
+    const repeatLength = lastNote[1] + lastNote[2] + pattern.gap;
+    const now = audioCtx.currentTime;
+    let t = 0;
+    while (t < totalSeconds) {
+      pattern.notes.forEach(([freq, offset, duration]) => {
+        if (t + offset < totalSeconds) {
+          playTone(freq, now + t + offset, duration, pattern.wave, 0.15);
+        }
+      });
+      t += repeatLength;
+    }
+  }
+
+  // Short keyboard-style tick played per typed character
+  function typingTick(){
+    ensureAudio();
+    const now = audioCtx.currentTime;
+    const freq = 180 + Math.random() * 90; // slight pitch variation = more natural
+    playTone(freq, now, 0.025, 'square', 0.05);
+  }
+
+  // ---------- Typewriter effect ----------
+  function typeText(el, fullText, onDone){
+    el.textContent = '';
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    el.appendChild(cursor);
+
+    let i = 0;
+    const speed = 45; // ms per character
+
+    function step(){
+      if (i < fullText.length){
+        const ch = fullText[i];
+        cursor.insertAdjacentText('beforebegin', ch);
+        if (ch.trim() !== '') typingTick(); // no click sound for spaces
+        i++;
+        setTimeout(step, speed);
+      } else {
+        cursor.classList.add('hidden');
+        if (onDone) onDone();
+      }
+    }
+    step();
+  }
+
+  // ---------- Rendering a notification ----------
+  const labels = { info:'Announcement', success:'Good news', warning:'Heads up', urgent:'Urgent' };
+  const ALERT_SECONDS = 3;
+
+  function showNotification(n, animate){
+    idle.style.display = 'none';
+    stage.innerHTML = '';
+
+    const card = document.createElement('div');
+    card.className = 'card ' + n.type;
+    card.innerHTML = `
+      <div class="tag"><span class="status-word" id="statusWord">${animate ? 'Incoming…' : (labels[n.type] || 'Announcement')}</span></div>
+      <div class="headline" id="headlineEl"></div>
+      ${n.message ? `<p class="message" id="messageEl">${escapeHtml(n.message)}</p>` : ''}
+      <div class="time">received ${n.time}</div>
+    `;
+    stage.appendChild(card);
+
+    const headlineEl = document.getElementById('headlineEl');
+    const statusWord = document.getElementById('statusWord');
+    const messageEl = document.getElementById('messageEl');
+
+    if (!animate){
+      // Loading from history on page load — show instantly, no sound/animation
+      headlineEl.textContent = n.title;
+      statusWord.textContent = labels[n.type] || 'Announcement';
+      if (messageEl) messageEl.classList.add('show');
+      return;
+    }
+
+    // 1. Alert beep for 3 seconds, with a blinking indicator dot
+    brandDot.classList.add('alerting');
+    playAlertForDuration(n.type, ALERT_SECONDS);
+
+    setTimeout(() => {
+      brandDot.classList.remove('alerting');
+      statusWord.textContent = labels[n.type] || 'Announcement';
+
+      // 2. Type out the headline with a typing sound
+      typeText(headlineEl, n.title, () => {
+        // 3. Reveal the details line after typing finishes
+        if (messageEl) messageEl.classList.add('show');
+      });
+    }, ALERT_SECONDS * 1000);
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ---------- Socket events ----------
+  socket.on('notification', (n) => {
+    showNotification(n, true);
+  });
+
+  socket.on('history', (list) => {
+    if (list && list.length) showNotification(list[0], false);
+  });
+
+  socket.on('cleared', () => {
+    stage.innerHTML = '';
+    idle.style.display = 'block';
+    stage.appendChild(idle);
+  });
+
+  // Also try to unlock immediately in case a click already happened before this script ran
+  ensureAudio();
+</script>
+</body>
+</html>
