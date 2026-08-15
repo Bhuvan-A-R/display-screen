@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Console — Hackathon Broadcast</title>
+<style>
+  :root{
+    --bg:#0b0d10;
+    --panel:#14171b;
+    --line:#242a30;
+    --text:#e8ecef;
+    --dim:#7c8891;
+    --accent:#7c5cff;
+    --accent2:#33e0a1;
+    --warn:#ffb454;
+    --urgent:#ff5c68;
+    --mono: 'JetBrains Mono','SF Mono',Consolas,monospace;
+    --sans: 'Inter',system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:32px;
+  }
+  .wrap{width:100%;max-width:640px;}
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent2);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--accent2);box-shadow:0 0 8px var(--accent2);}
+  h1{
+    font-size:30px;
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  .sub{color:var(--dim);font-size:14px;margin-bottom:28px;}
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:24px;
+  }
+  label{
+    display:block;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--dim);
+    margin:18px 0 8px;
+  }
+  label:first-of-type{margin-top:0;}
+  input[type=text], textarea{
+    width:100%;
+    background:#0f1215;
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--text);
+    padding:12px 14px;
+    font-family:var(--sans);
+    font-size:15px;
+    outline:none;
+    transition:border-color .15s;
+  }
+  input[type=text]:focus, textarea:focus{border-color:var(--accent);}
+  textarea{resize:vertical;min-height:70px;}
+  .types{display:flex;gap:8px;flex-wrap:wrap;}
+  .type-btn{
+    flex:1;
+    min-width:100px;
+    padding:10px 8px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:#0f1215;
+    color:var(--dim);
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition:all .15s;
+  }
+  .type-btn.active[data-type=info]{border-color:var(--accent);color:var(--accent);background:rgba(124,92,255,.08);}
+  .type-btn.active[data-type=success]{border-color:var(--accent2);color:var(--accent2);background:rgba(51,224,161,.08);}
+  .type-btn.active[data-type=warning]{border-color:var(--warn);color:var(--warn);background:rgba(255,180,84,.08);}
+  .type-btn.active[data-type=urgent]{border-color:var(--urgent);color:var(--urgent);background:rgba(255,92,104,.08);}
+  .send-btn{
+    width:100%;
+    margin-top:22px;
+    padding:15px;
+    border-radius:8px;
+    border:none;
+    background:var(--accent);
+    color:#fff;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    transition:transform .1s, background .15s;
+  }
+  .send-btn:hover{background:#8f72ff;}
+  .send-btn:active{transform:scale(.98);}
+  .clear-btn{
+    width:100%;
+    margin-top:10px;
+    padding:11px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--dim);
+    font-size:13px;
+    cursor:pointer;
+  }
+  .clear-btn:hover{color:var(--urgent);border-color:var(--urgent);}
+  .status{
+    margin-top:16px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--dim);
+    min-height:16px;
+  }
+  .status.ok{color:var(--accent2);}
+  .link{
+    display:inline-block;
+    margin-top:20px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--dim);
+  }
+  .link a{color:var(--accent);text-decoration:none;}
+  .conn{
+    position:fixed;top:20px;right:20px;
+    font-family:var(--mono);font-size:11px;
+    color:var(--dim);
+    display:flex;align-items:center;gap:6px;
+  }
+  .conn .dot{background:var(--urgent);box-shadow:0 0 8px var(--urgent);}
+  .conn.live .dot{background:var(--accent2);box-shadow:0 0 8px var(--accent2);}
+</style>
+</head>
+<body>
+
+<div class="conn" id="conn"><span class="dot"></span><span id="connText">connecting…</span></div>
+
+<div class="wrap">
+  <div class="eyebrow"><span class="dot"></span>broadcast console</div>
+  <h1>Send to the big screen</h1>
+  <div class="sub">Whatever you send here appears instantly on every /display screen, with sound.</div>
+
+  <div class="panel">
+    <label for="title">Headline</label>
+    <input type="text" id="title" placeholder="e.g. Judging starts in 15 minutes" maxlength="80" />
+
+    <label for="message">Details <span style="text-transform:none;opacity:.6;">(optional)</span></label>
+    <textarea id="message" placeholder="Extra context to show under the headline…" maxlength="200"></textarea>
+
+    <label>Priority</label>
+    <div class="types" id="types">
+      <button class="type-btn active" data-type="info">Info</button>
+      <button class="type-btn" data-type="success">Success</button>
+      <button class="type-btn" data-type="warning">Warning</button>
+      <button class="type-btn" data-type="urgent">Urgent</button>
+    </div>
+
+    <button class="send-btn" id="sendBtn">Send to display screen</button>
+    <button class="clear-btn" id="clearBtn">Clear display history</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="link">Display screen lives at <a href="/display" target="_blank">/display</a> — open it on the projector.</div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  const connEl = document.getElementById('conn');
+  const connText = document.getElementById('connText');
+  socket.on('connect', () => { connEl.classList.add('live'); connText.textContent = 'live'; });
+  socket.on('disconnect', () => { connEl.classList.remove('live'); connText.textContent = 'disconnected'; });
+
+  let selectedType = 'info';
+  document.querySelectorAll('.type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedType = btn.dataset.type;
+    });
+  });
+
+  const titleInput = document.getElementById('title');
+  const messageInput = document.getElementById('message');
+  const status = document.getElementById('status');
+
+  function send() {
+    const title = titleInput.value.trim();
+    const message = messageInput.value.trim();
+    if (!title) {
+      status.textContent = 'add a headline first';
+      status.classList.remove('ok');
+      titleInput.focus();
+      return;
+    }
+    socket.emit('send-notification', { title, message, type: selectedType });
+    status.textContent = 'sent to display screen ✓';
+    status.classList.add('ok');
+    titleInput.value = '';
+    messageInput.value = '';
+    titleInput.focus();
+    setTimeout(() => { status.textContent = ''; }, 2500);
+  }
+
+  document.getElementById('sendBtn').addEventListener('click', send);
+  titleInput.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    socket.emit('clear-notifications');
+    status.textContent = 'display history cleared';
+    status.classList.add('ok');
+    setTimeout(() => { status.textContent = ''; }, 2000);
+  });
+</script>
+</body>
+</html>
